@@ -12,7 +12,7 @@ use ratatui::{
     layout::Rect,
     style::{Color, Style},
     text::Line,
-    widgets::{self, BarChart, Paragraph, Widget},
+    widgets::{Paragraph, Widget},
     Terminal,
 };
 use ultimate_tic_tac_toe::{Board, IndividualBoard, LocalBoardState, Player};
@@ -66,16 +66,6 @@ fn render_group(board: IndividualBoard, x_start: u16, y_start: u16, active: bool
     buf.set_line(x_start, y_start + 3, &inter_line, 5);
 
     buf
-}
-
-struct IndividualBoardWidget {
-    board: IndividualBoard,
-}
-
-impl Widget for IndividualBoardWidget {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        render_group(self.board, area.x, area.y, true);
-    }
 }
 
 struct BoardWidget {
@@ -137,6 +127,8 @@ fn main() -> anyhow::Result<()> {
     let mut last_played = None;
 
     let eval_cache = DashMap::new();
+    let eval_cache2 = DashMap::new();
+    let cache = DashMap::new();
     let mut last_eval = 0.0;
 
     fn move_left((global, local): &mut (usize, usize)) {
@@ -228,7 +220,8 @@ fn main() -> anyhow::Result<()> {
                         )
                     })?;
 
-                    let ((global, local), new_eval) = board.minimax(5, &eval_cache);
+                    let ((global, local), new_eval) =
+                        board.minimax(5, &cache, &eval_cache, &eval_cache2);
                     last_eval = new_eval;
 
                     last_played = Some((global, local));
@@ -257,6 +250,20 @@ fn main() -> anyhow::Result<()> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
+
+    println!("{}", board);
+
+    if let Some(winner) = board.has_won() {
+        println!(
+            "{} has won!",
+            match winner {
+                Player::X => 'X',
+                Player::O => 'O',
+            }
+        );
+    } else if board.is_tie() {
+        println!("Tie!");
+    }
 
     Ok(())
 }

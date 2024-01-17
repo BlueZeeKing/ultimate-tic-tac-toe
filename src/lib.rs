@@ -199,19 +199,37 @@ impl Board {
         Some(new_self)
     }
 
-    pub fn evalutate(&self, cache: &DashMap<(IndividualBoard, Player), f64>) -> f64 {
+    pub fn evalutate(
+        &self,
+        cache: &DashMap<(IndividualBoard, Player), f64>,
+        eval_cache2: &DashMap<([Option<LocalBoardState>; 9], Player), f64>,
+    ) -> f64 {
         self.locals
             .iter()
-            .map(|board| minimax(board.to_owned(), self.to_play, cache))
+            .map(|board| {
+                minimax(board.to_owned(), self.to_play, cache)
+                    + minimax(board.to_owned(), self.to_play.invert(), cache)
+            })
             .sum::<f64>()
-            / 10.0
+            / 36.0
+            + (minimax_whole(self.to_owned(), self.to_play, eval_cache2)
+                + minimax_whole(self.to_owned(), self.to_play.invert(), eval_cache2))
+                / 4.0
     }
 
     pub fn minimax(
         &self,
         depth: u64,
+        cache: &DashMap<Board, (u64, ((usize, usize), f64))>,
         eval_cache: &DashMap<(IndividualBoard, Player), f64>,
+        eval_cache2: &DashMap<([Option<LocalBoardState>; 9], Player), f64>,
     ) -> ((usize, usize), f64) {
+        if let Some((new_depth, res)) = cache.get(self).as_deref() {
+            if *new_depth >= depth {
+                return *res;
+            }
+        }
+
         if self.is_tie() {
             return ((0, 0), 0.0);
         } else if let Some(player) = self.has_won() {
@@ -244,9 +262,9 @@ impl Board {
                 (
                     pos,
                     if depth == 0 {
-                        board.evalutate(eval_cache)
+                        board.evalutate(eval_cache, eval_cache2)
                     } else {
-                        board.minimax(depth - 1, eval_cache).1
+                        board.minimax(depth - 1, cache, eval_cache, eval_cache2).1
                     },
                 )
             });
@@ -260,6 +278,8 @@ impl Board {
                 .min_by(|(_, eval_a), (_, eval_b)| eval_a.partial_cmp(eval_b).unwrap())
                 .unwrap()
         };
+
+        cache.insert(self.to_owned(), (depth, res));
 
         res
     }
@@ -333,6 +353,46 @@ fn minimax(
     };
 
     cache.insert((board, player), res);
+
+    res
+}
+
+fn minimax_whole(
+    board: Board,
+    player: Player,
+    eval_cache2: &DashMap<([Option<LocalBoardState>; 9], Player), f64>,
+) -> f64 {
+    if let Some(res) = eval_cache2.get(&(board.global, player)) {
+        return *res;
+    }
+
+    if board.is_tie() {
+        return 0.0;
+    } else if let Some(winner) = board.has_won() {
+        match winner {
+            Player::X => return 1.0,
+            Player::O => return -1.0,
+        }
+    }
+
+    let results = board
+        .global
+        .iter()
+        .enumerate()
+        .filter(|(_, square)| square.is_none())
+        .map(|(idx, _)| {
+            let mut new_board = board.clone();
+            new_board.global[idx] = Some(LocalBoardState::Win(player));
+            minimax_whole(new_board, player.invert(), eval_cache2)
+        });
+
+    let res = if player == Player::X {
+        results.max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap()
+    } else {
+        results.min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap()
+    };
+
+    eval_cache2.insert((board.global, player), res);
 
     res
 }
