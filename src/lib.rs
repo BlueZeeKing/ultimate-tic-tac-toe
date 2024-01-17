@@ -1,11 +1,14 @@
 use std::fmt::Display;
 
-#[derive(Clone, Debug)]
+use dashmap::DashMap;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Board {
-    global: [Option<LocalBoardState>; 9],
-    locals: [IndividualBoard; 9],
-    to_play: Player,
-    global_idx: Option<usize>,
+    pub global: [Option<LocalBoardState>; 9],
+    pub locals: [IndividualBoard; 9],
+    pub to_play: Player,
+    pub global_idx: Option<usize>,
 }
 
 impl Default for Board {
@@ -19,13 +22,13 @@ impl Default for Board {
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Copy, Debug, Eq, Hash)]
 pub enum LocalBoardState {
     Win(Player),
     Tie,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, Eq, Hash)]
 pub enum Player {
     X,
     O,
@@ -38,7 +41,8 @@ impl Player {
             Player::O => Player::X,
         }
     }
-    fn to_char(this: Option<Self>) -> char {
+
+    pub fn to_char(this: Option<Self>) -> char {
         match this {
             Some(Player::X) => 'X',
             Some(Player::O) => 'O',
@@ -47,8 +51,8 @@ impl Player {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct IndividualBoard([Option<Player>; 9]);
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct IndividualBoard(pub [Option<Player>; 9]);
 
 impl Default for IndividualBoard {
     fn default() -> Self {
@@ -173,6 +177,10 @@ impl Board {
             return None;
         }
 
+        if self.global[global].is_some() {
+            return None;
+        }
+
         let mut new_self = self.to_owned();
 
         if new_self.locals[global].0[local].is_some() {
@@ -189,6 +197,71 @@ impl Board {
         };
 
         Some(new_self)
+    }
+
+    pub fn evalutate(&self, cache: &DashMap<(IndividualBoard, Player), f64>) -> f64 {
+        self.locals
+            .iter()
+            .map(|board| minimax(board.to_owned(), self.to_play, cache))
+            .sum::<f64>()
+            / 10.0
+    }
+
+    pub fn minimax(
+        &self,
+        depth: u64,
+        eval_cache: &DashMap<(IndividualBoard, Player), f64>,
+    ) -> ((usize, usize), f64) {
+        if self.is_tie() {
+            return ((0, 0), 0.0);
+        } else if let Some(player) = self.has_won() {
+            return (
+                (0, 0),
+                match player {
+                    Player::X => 1.0,
+                    Player::O => -1.0,
+                },
+            );
+        }
+
+        let results = self
+            .locals
+            .par_iter()
+            .enumerate()
+            .filter(|(idx, _)| self.global_idx.is_none() || self.global_idx.unwrap() == *idx)
+            // .filter(|(idx, _)| self.global[*idx].is_none())
+            .map(|(global, board)| {
+                board
+                    .0
+                    .par_iter()
+                    .enumerate()
+                    .filter(|(_, position)| position.is_none())
+                    .map(move |(local, _)| (global, local))
+            })
+            .flatten()
+            .filter_map(|(global, local)| Some(((global, local), self.play(global, local)?)))
+            .map(|(pos, board)| {
+                (
+                    pos,
+                    if depth == 0 {
+                        board.evalutate(eval_cache)
+                    } else {
+                        board.minimax(depth - 1, eval_cache).1
+                    },
+                )
+            });
+
+        let res = if self.to_play == Player::X {
+            results
+                .max_by(|(_, eval_a), (_, eval_b)| eval_a.partial_cmp(eval_b).unwrap())
+                .unwrap()
+        } else {
+            results
+                .min_by(|(_, eval_a), (_, eval_b)| eval_a.partial_cmp(eval_b).unwrap())
+                .unwrap()
+        };
+
+        res
     }
 }
 
@@ -223,4 +296,43 @@ impl Display for Board {
 
         writeln!(f, "{}", output)
     }
+}
+
+fn minimax(
+    board: IndividualBoard,
+    player: Player,
+    cache: &DashMap<(IndividualBoard, Player), f64>,
+) -> f64 {
+    if let Some(res) = cache.get(&(board.clone(), player)) {
+        return *res;
+    }
+    if board.is_tie() {
+        return 0.0;
+    } else if let Some(winner) = board.has_won() {
+        match winner {
+            Player::X => return 1.0,
+            Player::O => return -1.0,
+        }
+    }
+
+    let results = board
+        .0
+        .iter()
+        .enumerate()
+        .filter(|(_, square)| square.is_none())
+        .map(|(idx, _)| {
+            let mut new_board = board.clone();
+            new_board.0[idx] = Some(player);
+            minimax(new_board, player.invert(), cache)
+        });
+
+    let res = if player == Player::X {
+        results.max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap()
+    } else {
+        results.min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap()
+    };
+
+    cache.insert((board, player), res);
+
+    res
 }
