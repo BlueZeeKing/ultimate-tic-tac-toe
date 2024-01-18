@@ -12,7 +12,7 @@ use ratatui::{
     layout::Rect,
     style::{Color, Style},
     text::Line,
-    widgets::{Paragraph, Widget},
+    widgets::Widget,
     Terminal,
 };
 use ultimate_tic_tac_toe::{Board, IndividualBoard, LocalBoardState, Player};
@@ -129,7 +129,6 @@ fn main() -> anyhow::Result<()> {
     let eval_cache = DashMap::new();
     let eval_cache2 = DashMap::new();
     let cache = DashMap::new();
-    let mut last_eval = 0.0;
 
     fn move_left((global, local): &mut (usize, usize)) {
         if *local % 3 == 0 && *global % 3 == 0 {
@@ -184,10 +183,6 @@ fn main() -> anyhow::Result<()> {
                     last_played,
                 },
                 Rect::new(0, 0, 21, 21),
-            );
-            frame.render_widget(
-                Paragraph::new(format!("eval: {last_eval}")),
-                Rect::new(0, 21, 21, 1),
             )
         })?;
 
@@ -213,16 +208,11 @@ fn main() -> anyhow::Result<()> {
                                 last_played,
                             },
                             Rect::new(0, 0, 21, 21),
-                        );
-                        frame.render_widget(
-                            Paragraph::new(format!("eval: {last_eval}")),
-                            Rect::new(0, 21, 21, 1),
                         )
                     })?;
 
-                    let ((global, local), new_eval) =
-                        board.minimax(5, &cache, &eval_cache, &eval_cache2);
-                    last_eval = new_eval;
+                    let ((global, local), _eval) =
+                        board.minimax(6, &cache, &eval_cache, &eval_cache2);
 
                     last_played = Some((global, local));
 
