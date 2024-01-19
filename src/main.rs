@@ -211,7 +211,7 @@ fn main() -> anyhow::Result<()> {
                         )
                     })?;
 
-                    let ((global, local), _eval) =
+                    let ((global, local), _eval, _depth) =
                         board.minimax(6, &cache, &eval_cache, &eval_cache2);
 
                     last_played = Some((global, local));
