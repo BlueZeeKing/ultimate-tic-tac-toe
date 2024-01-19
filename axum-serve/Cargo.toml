@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 axum = "0.7.4"
 axum-server = { version = "0.6.0", features = ["tls-rustls"] }
+dashmap = "5.5.3"
 http = "1.0.0"
 tokio = { version = "1.35.1", features = ["full"] }
 tower = "0.4.13"
