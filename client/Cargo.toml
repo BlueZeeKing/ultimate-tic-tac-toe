@@ -1,16 +1,13 @@
-workspace = { members = ["axum-serve", "client", "minimax"] }
 [package]
-name = "ultimate-tic-tac-toe"
+name = "client"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.79"
-dashmap = { version = "5.5.3" }
-nom = "7.1.3"
-phf = "0.11.2"
-rayon = "1.8.0"
+leptos = { version = "0.5.6", features = ["csr", "nightly"] }
+ultimate-tic-tac-toe = { path = "../" }
 serde = { version = "1.0.195", features = ["derive"] }
+reqwasm = "0.5.0"
 serde_json = "1.0.111"

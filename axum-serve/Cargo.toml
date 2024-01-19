@@ -1,0 +1,17 @@
+[package]
+name = "axum-serve"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = "0.7.4"
+axum-server = { version = "0.6.0", features = ["tls-rustls"] }
+dashmap = "5.5.3"
+http = "1.0.0"
+tokio = { version = "1.35.1", features = ["full"] }
+tower = "0.4.13"
+tower-http = { version = "0.5.1", features = ["cors", "fs", "set-header"] }
+ultimate-tic-tac-toe = { path = "../" }
+minimax = { path = "../minimax" }

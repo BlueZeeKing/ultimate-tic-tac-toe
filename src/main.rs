@@ -1,21 +1,5 @@
-use std::io;
-
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
 use dashmap::DashMap;
-use ratatui::{
-    backend::CrosstermBackend,
-    buffer::Buffer,
-    layout::Rect,
-    style::{Color, Style},
-    text::Line,
-    widgets::Widget,
-    Terminal,
-};
-use ultimate_tic_tac_toe::{Board, IndividualBoard, LocalBoardState, Player};
+use ultimate_tic_tac_toe::{evalute, Board, IndividualBoard, Player};
 
 fn to_xy(pos: (usize, usize)) -> (u16, u16) {
     let start_x = pos.0 % 3 * 8;
