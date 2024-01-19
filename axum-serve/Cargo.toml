@@ -14,3 +14,4 @@ tokio = { version = "1.35.1", features = ["full"] }
 tower = "0.4.13"
 tower-http = { version = "0.5.1", features = ["cors", "fs", "set-header"] }
 ultimate-tic-tac-toe = { path = "../" }
+minimax = { path = "../minimax" }

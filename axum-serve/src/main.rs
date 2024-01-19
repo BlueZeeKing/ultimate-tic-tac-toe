@@ -8,15 +8,10 @@ use axum::{
 };
 use dashmap::DashMap;
 use http::{HeaderName, HeaderValue};
+use minimax::minimax;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, services::ServeDir, set_header::SetResponseHeaderLayer};
 use ultimate_tic_tac_toe::{Board, IndividualBoard, LocalBoardState, MiniMaxResult, Player};
-
-#[derive(Clone)]
-struct Cache {
-    eval_cache: DashMap<(IndividualBoard, Player), f64>,
-    eval_cache2: DashMap<([Option<LocalBoardState>; 9], Player), f64>,
-}
 
 #[tokio::main]
 async fn main() {
@@ -34,11 +29,7 @@ async fn main() {
                     HeaderName::from_static("cross-origin-embedder-policy"),
                     HeaderValue::from_static("credentialless"),
                 )),
-        )
-        .with_state(Arc::new(Cache {
-            eval_cache: Default::default(),
-            eval_cache2: Default::default(),
-        }));
+        );
 
     axum_server::bind(SocketAddr::from_str("0.0.0.0:3000").unwrap())
         .serve(app.into_make_service())
@@ -46,9 +37,8 @@ async fn main() {
         .unwrap();
 }
 
-async fn calc(State(state): State<Arc<Cache>>, Json(board): Json<Board>) -> impl IntoResponse {
-    let ((global, local), eval, _) =
-        board.minimax(6, &DashMap::new(), &state.eval_cache, &state.eval_cache2);
+async fn calc(Json(board): Json<Board>) -> impl IntoResponse {
+    let ((global, local), eval, _) = minimax(&board, 10, 2, f64::MIN, f64::MAX);
 
     Json(MiniMaxResult {
         global,

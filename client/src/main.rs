@@ -46,14 +46,11 @@ fn main() {
     let render_board = move || {
         let board = board.get();
 
-        board
-            .locals
-            .into_iter()
-            .enumerate()
-            .map(|(global, local_board)| {
+        (0..9)
+            .map(|global| {
                 view! {
                     <SingleBoard
-                        board=local_board
+                        board=board.get_local(global)
                         active=board.global_idx.is_none() || board.global_idx.unwrap() == global
                         on_click=move |local| { play(global, local) }
                     />
@@ -92,8 +89,7 @@ fn SingleBoard<F: Fn(usize) + 'static + Clone>(
     on_click: F,
 ) -> impl IntoView {
     let squares = board
-        .0
-        .into_iter()
+        .squares()
         .map(|square| match square {
             None => ' ',
             Some(Player::X) => 'X',
