@@ -1,23 +1,17 @@
-use std::{net::SocketAddr, str::FromStr, sync::Arc};
+use std::{net::SocketAddr, str::FromStr};
 
-use axum::{
-    extract::State,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
-use dashmap::DashMap;
+use axum::{response::IntoResponse, routing::post, Json, Router};
 use http::{HeaderName, HeaderValue};
 use minimax::minimax;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, services::ServeDir, set_header::SetResponseHeaderLayer};
-use ultimate_tic_tac_toe::{Board, IndividualBoard, LocalBoardState, MiniMaxResult, Player};
+use ultimate_tic_tac_toe::{Board, MiniMaxResult};
 
 #[tokio::main]
 async fn main() {
     let app = Router::new()
         .route("/calc", post(calc))
-        .nest_service("/", ServeDir::new("../client/dist"))
+        .nest_service("/", ServeDir::new("../web-client/dist"))
         .layer(
             ServiceBuilder::new()
                 .layer(CorsLayer::new())
@@ -38,7 +32,7 @@ async fn main() {
 }
 
 async fn calc(Json(board): Json<Board>) -> impl IntoResponse {
-    let ((global, local), eval, _) = minimax(&board, 10, 2, f64::MIN, f64::MAX);
+    let ((global, local), eval, _) = minimax(&board, 9, 2, f64::MIN, f64::MAX);
 
     Json(MiniMaxResult {
         global,

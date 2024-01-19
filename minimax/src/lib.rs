@@ -1,6 +1,5 @@
 use std::{cmp::Ordering, sync::atomic};
 
-use dashmap::DashMap;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use ultimate_tic_tac_toe::{Board, Player};
 
