@@ -2,8 +2,9 @@ use std::fmt::Display;
 
 use dashmap::DashMap;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Board {
     pub global: [Option<LocalBoardState>; 9],
     pub locals: [IndividualBoard; 9],
@@ -22,13 +23,13 @@ impl Default for Board {
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug, Eq, Hash)]
+#[derive(Clone, PartialEq, Copy, Debug, Eq, Hash, Serialize, Deserialize)]
 pub enum LocalBoardState {
     Win(Player),
     Tie,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
 pub enum Player {
     X,
     O,
@@ -51,7 +52,7 @@ impl Player {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct IndividualBoard(pub [Option<Player>; 9]);
 
 impl Default for IndividualBoard {
